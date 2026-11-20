@@ -1,5 +1,6 @@
 #!/bin/bash
-
+# Setup automatico di prova, lo allineero' mai ? Lo finiro' ? Bho!
+#
 # Abilita l'uscita immediata in caso di errori
 set -e
 
