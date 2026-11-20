@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="it" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IK4ICZ DX Viewer 1.4</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    body { background-color: #0d1117; color: #c9d1d9; font-family: system-ui, -apple-system, sans-serif; }
+    .card { background-color: #161b22; border-color: #30363d; }
+    .table { --bs-table-bg: transparent; --bs-table-color: #c9d1d9; border-color: #21262d; }
+    .time-col { font-family: monospace; color: #8b949e; width: 140px; }
+    .freq-badge { font-family: monospace; font-size: 0.9rem; width: 100px; display: inline-block; text-align: right; }
+    .dx-call { font-weight: 700; color: #f2cc60; }
+    .spotter-call { color: #58a6ff; }
+    .comment-text { color: #8b949e; font-size: 0.85rem; }
+    .btn-filter { font-size: 0.8rem; padding: 0.2rem 0.5rem; }
+
+    .sticky-filters {
+        position: sticky;
+        top: 10px;
+        z-index: 1020;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .table-scroll-container {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .mobile-filter-toggle {
+        display: none;
+    }
+
+   .ticker-wrap {
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+      mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+    }
+
+    .ticker-text {
+      display: inline-block;
+      padding-left: 100%;
+      animation: ticker-scroll 25s linear infinite;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 0.95rem;
+    }
+
+    .ticker-wrap:hover .ticker-text {
+      animation-play-state: paused;
+    }
+
+    @keyframes ticker-scroll {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-100%, 0, 0); }
+    }
+
+    @media (max-width: 767px) {
+        body { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+        .container-fluid { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+        
+        .sticky-filters {
+            position: static !important;
+            margin-bottom: 0.75rem !important;
+            padding: 0.75rem !important;
+        }
+
+        .table-scroll-container {
+            max-height: none !important;
+            overflow-y: visible !important;
+        }
+
+        .mobile-filter-toggle {
+            display: block;
+            cursor: pointer;
+            font-weight: bold;
+            color: #58a6ff;
+            user-select: none;
+        }
+        
+        .table th, .table td {
+            padding: 0.4rem 0.3rem !important;
+            font-size: 0.82rem;
+        }
+        .freq-badge {
+            width: auto !important;
+            font-size: 0.8rem !important;
+            padding: 0.2rem 0.4rem;
+        }
+    }
+
+    footer {
+        border-top: 1px solid #21262d;
+        color: #8b949e;
+        font-size: 0.85rem;
+    }
+    footer a {
+        color: #58a6ff;
+        text-decoration: none;
+    }
+    footer a:hover {
+        text-decoration: underline;
+    }
+</style>
+</head>
+<body class="py-4">
+    <div class="container-fluid px-4">
+
+        <!-- HEADER -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body d-flex justify-content-between align-items-center py-2">
+                <h5 class="m-0 fw-bold text-white text-nowrap">IK4ICZ DX Viewer 1.4</h5>
+                
+                <div class="ticker-wrap flex-grow-1 mx-3">
+                    <div class="ticker-text" id="ticker-content">
+                        Caricamento info propagazione e bollettini DX...
+                    </div>
+                </div>
+
+                <span class="badge bg-success" id="status-badge">LIVE</span>
+            </div>
+        </div>
+
+        <!-- TAB NAVIGATION -->
+        <ul class="nav nav-tabs border-bottom-0 mb-3" id="clusterTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold" id="live-tab" data-bs-toggle="tab" data-bs-target="#live-panel" type="button" role="tab">Real-time Stream</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="search-tab" data-bs-toggle="tab" data-bs-target="#search-panel" type="button" role="tab">Ricerca Storica & Filtri</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-panel" type="button" role="tab">Stazioni Collegate</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="clusterTabsContent">
+            
+            <!-- PANEL 1: STREAM LIVE -->
+            <div class="tab-pane fade show active" id="live-panel" role="tabpanel">
+                
+<div class="card shadow-sm p-3 mb-3 sticky-filters">
+    <details open class="mobile-details">
+        <summary class="mobile-filter-toggle pb-1 mb-2 border-bottom border-secondary">
+            <span>Filtri Live (Clicca per espandere/chiudere)</span>
+        </summary>
+        
+        <div class="mb-2">
+            <small class="text-muted d-block fw-bold mb-1">Filtra Bande Live (deseleziona tutte per vedere tutto):</small>
+            <div class="d-flex flex-wrap gap-2">
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="160m" id="lb-160m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-160m">160m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="80m" id="lb-80m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-80m">80m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="60m" id="lb-60m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-60m">60m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="40m" id="lb-40m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-40m">40m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="30m" id="lb-30m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-30m">30m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="20m" id="lb-20m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-20m">20m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="17m" id="lb-17m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-17m">17m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="15m" id="lb-15m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-15m">15m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="12m" id="lb-12m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-12m">12m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="10m" id="lb-10m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-10m">10m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="8m" id="lb-8m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-8m">8m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="6m" id="lb-6m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-6m">6m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="4m" id="lb-4m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-4m">4m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="2m" id="lb-2m" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-2m">2m</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="70cm" id="lb-70cm" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-70cm">70cm</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-band" type="checkbox" value="SHF" id="lb-shf" onchange="renderLiveSpots()"><label class="form-check-label small" for="lb-shf">SHF+</label></div>
+            </div>
+        </div>
+
+        <div class="pt-2 border-top border-secondary">
+            <small class="text-muted d-block fw-bold mb-1">Filtra Modi Live:</small>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="CW" id="lm-cw" onchange="renderLiveSpots()"><label class="form-check-label small fw-bold text-info" for="lm-cw">CW</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="SSB" id="lm-ssb" onchange="renderLiveSpots()"><label class="form-check-label small fw-bold text-info" for="lm-ssb">SSB / Phone</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="DIGI" id="lm-digi" onchange="renderLiveSpots()"><label class="form-check-label small fw-bold text-warning" for="lm-digi">Tutti i Digitali (DIGI)</label></div>
+                
+                <span class="text-muted mx-1">|</span>
+                
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="FT8" id="lm-ft8" onchange="renderLiveSpots()"><label class="form-check-label small" for="lm-ft8">FT8</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="FT4" id="lm-ft4" onchange="renderLiveSpots()"><label class="form-check-label small" for="lm-ft4">FT4</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="FT2" id="lm-ft2" onchange="renderLiveSpots()"><label class="form-check-label small" for="lm-ft2">FT2</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="RTTY" id="lm-rtty" onchange="renderLiveSpots()"><label class="form-check-label small" for="lm-rtty">RTTY</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="PSK" id="lm-psk" onchange="renderLiveSpots()"><label class="form-check-label small" for="lm-psk">PSK</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="SSTV" id="lm-sstv" onchange="renderLiveSpots()"><label class="form-check-label small" for="lm-sstv">SSTV</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="MSK144" id="lm-msk" onchange="renderLiveSpots()"><label class="form-check-label small" for="lm-msk">MSK144</label></div>
+                <div class="form-check form-check-inline"><input class="form-check-input chk-live-mode" type="checkbox" value="EME" id="lm-eme" onchange="renderLiveSpots()"><label class="form-check-label small" for="lm-eme">EME</label></div>
+            </div>
+        </div>
+    </details>
+</div>
+
+                <div class="card shadow-sm">
+                    <div class="table-responsive table-scroll-container">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark" style="position: sticky; top: 0; z-index: 10;">
+                                <tr>
+                                    <th style="width: 80px;">UTC</th>
+                                    <th>Frequenza</th>
+                                    <th>DX Call</th>
+                                    <th>Spotter</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody id="live-table">
+                                <tr><td colspan="5" class="text-center py-4 text-muted">Caricamento live spot...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL 2: RICERCA STORICA -->
+            <div class="tab-pane fade" id="search-panel" role="tabpanel">
+                <div class="card shadow-sm p-3 mb-3">
+                    <form id="search-form" class="row g-2 align-items-center">
+                        <div class="col-md-2">
+                            <input type="text" id="search-dx" class="form-control form-control-sm" placeholder="DX Call (es. 3B8)">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" id="search-comment" class="form-control form-control-sm" placeholder="Note/Commento (es. POTA, EME)">
+                        </div>
+                        <div class="col-md-2">
+                            <select id="search-band" class="form-select form-select-sm">
+                                <option value="">Tutte le Bande</option>
+                                <option value="160m">160m</option>
+                                <option value="80m">80m</option>
+                                <option value="60m">60m</option>
+                                <option value="40m">40m</option>
+                                <option value="30m">30m</option>
+                                <option value="20m">20m</option>
+                                <option value="17m">17m</option>
+                                <option value="15m">15m</option>
+                                <option value="12m">12m</option>
+                                <option value="10m">10m</option>
+                                <option value="8m">8m</option>
+                                <option value="6m">6m</option>
+                                <option value="4m">4m</option>
+                                <option value="2m">2m</option>
+                                <option value="70cm">70cm</option>
+                                <option value="SHF+">SHF+</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="search-mode" class="form-select form-select-sm">
+                                <option value="">Tutti i Modi</option>
+                                <option value="CW">CW</option>
+                                <option value="SSB">SSB</option>
+                                <option value="FT8">FT8</option>
+                                <option value="FT4">FT4</option>
+                                <option value="FT2">FT2</option>
+                                <option value="RTTY">RTTY</option>
+                                <option value="PSK">PSK</option>
+                                <option value="SSTV">SSTV</option>
+                                <option value="MSK144">MSK144</option>
+                                <option value="EME">EME</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">Cerca</button>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" onclick="resetSearch()" class="btn btn-outline-secondary btn-sm w-100">Reset</button>
+                        </div>
+                    </form>
+
+                    <div class="mt-3 pt-2 border-top border-secondary">
+                        <small class="text-muted d-block mb-1">Filtri Rapidi Banda & Modo:</small>
+                        <div class="btn-group me-2 mb-1" role="group">
+                            <button type="button" onclick="quickFilterBand('40m')" class="btn btn-outline-info btn-filter">40m</button>
+                            <button type="button" onclick="quickFilterBand('20m')" class="btn btn-outline-info btn-filter">20m</button>
+                            <button type="button" onclick="quickFilterBand('15m')" class="btn btn-outline-info btn-filter">15m</button>
+                            <button type="button" onclick="quickFilterBand('10m')" class="btn btn-outline-info btn-filter">10m</button>
+                            <button type="button" onclick="quickFilterBand('6m')" class="btn btn-outline-info btn-filter">6m</button>
+                        </div>
+                        <div class="btn-group mb-1" role="group">
+                            <button type="button" onclick="quickFilterMode('FT8')" class="btn btn-outline-warning btn-filter">FT8</button>
+                            <button type="button" onclick="quickFilterMode('CW')" class="btn btn-outline-warning btn-filter">CW</button>
+                            <button type="button" onclick="quickFilterMode('SSB')" class="btn btn-outline-warning btn-filter">SSB</button>
+                            <button type="button" onclick="quickFilterMode('EME')" class="btn btn-outline-warning btn-filter">EME</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="table-responsive table-scroll-container">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark" style="position: sticky; top: 0; z-index: 10;">
+                                <tr>
+                                    <th class="time-col">Data / Ora</th>
+                                    <th>Frequenza</th>
+                                    <th>DX Call</th>
+                                    <th>Spotter</th>
+                                    <th>Banda</th>
+                                    <th>Modo</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table">
+                                <tr><td colspan="7" class="text-center py-4 text-muted">Usa i filtri sopra per interrogare il database.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL 3: STAZIONI COLLEGATE -->
+            <div class="tab-pane fade" id="users-panel" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="table-responsive table-scroll-container">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark" style="position: sticky; top: 0; z-index: 10;">
+                                <tr>
+                                    <th>Callsign</th>
+                                    <th>Type</th>
+                                    <th>State</th>
+                                    <th>Started</th>
+                                    <th>Name</th>
+                                    <th>Ave</th>
+                                    <th>RTT</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <tr><td colspan="7" class="text-center py-4 text-muted">Apri questo tab per interrogare il cluster in tempo reale.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer class="mt-5 pt-3 pb-4 text-center">
+        <p class="mb-1">
+            <strong>DX Viewer</strong> &copy; 2026 IU4QTF - 
+            Distribuito sotto licenza <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">Copyleft (GNU GPLv3)</a>.
+        </p>
+        <p class="mb-0 text-muted" style="font-size: 0.78rem;">
+            Libero di utilizzare, modificare e ridistribuire questo software mantenendo aperta la sorgente. 
+            <i>73 & good DX!</i>
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE_URL = '/api/search';
+        const ALL_DIGI_MODES = ["FT8", "FT4", "FT2", "RTTY", "PSK", "SSTV", "MSK144", "EME"];
+        let currentRawLiveSpots = [];
+
+        async function fetchLiveSpots() {
+            try {
+                const response = await fetch('spots.json?_=' + new Date().getTime());
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                
+                currentRawLiveSpots = await response.json();
+                renderLiveSpots();
+                
+                document.getElementById('status-badge').className = "badge bg-success";
+                document.getElementById('status-badge').innerText = "LIVE";
+            } catch (err) {
+                document.getElementById('status-badge').className = "badge bg-danger";
+                document.getElementById('status-badge').innerText = "OFFLINE";
+            }
+        }
+
+        function renderLiveSpots() {
+            const tbody = document.getElementById('live-table');
+            
+            const selectedBands = Array.from(document.querySelectorAll('.chk-live-band:checked')).map(cb => cb.value.toUpperCase());
+            const selectedModes = Array.from(document.querySelectorAll('.chk-live-mode:checked')).map(cb => cb.value.toUpperCase());
+
+            const filtered = currentRawLiveSpots.filter(s => {
+                const band = (s.band || '').toUpperCase();
+                const mode = (s.mode || '').toUpperCase();
+
+                const matchBand = selectedBands.length === 0 || selectedBands.includes(band);
+                
+                let matchMode = selectedModes.length === 0;
+                if (!matchMode) {
+                    if (selectedModes.includes("DIGI") && ALL_DIGI_MODES.includes(mode)) {
+                        matchMode = true;
+                    } else if (selectedModes.includes(mode)) {
+                        matchMode = true;
+                    }
+                }
+
+                return matchBand && matchMode;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Nessuno spot corrisponde ai filtri selezionati.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(s => {
+                html += `<tr>
+                    <td class="font-monospace text-muted">${s.time}</td>
+                    <td><span class="badge bg-primary fs-6 freq-badge">${s.freq}</span></td>
+                    <td class="dx-call">${s.dx}</td>
+                    <td class="spotter-call">${s.spotter}</td>
+                    <td class="comment-text">${escapeHtml(s.comment || '')}</td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        async function searchHistory() {
+            const dx = document.getElementById('search-dx').value;
+            const comment = document.getElementById('search-comment').value;
+            const band = document.getElementById('search-band').value;
+            const mode = document.getElementById('search-mode').value;
+            
+            const tbody = document.getElementById('history-table');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-info">Interrogazione MariaDB in corso...</td></tr>';
+
+            try {
+                const url = `${API_BASE_URL}?dx=${encodeURIComponent(dx)}&comment=${encodeURIComponent(comment)}&band=${encodeURIComponent(band)}&mode=${encodeURIComponent(mode)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-warning">Nessun risultato trovato nel database.</td></tr>';
+                    return;
+                }
+
+                let html = '';
+                data.forEach(s => {
+                    html += `<tr>
+                        <td class="time-col font-monospace">${s.spot_time}</td>
+                        <td><span class="badge bg-primary fs-6 freq-badge">${s.frequency}</span></td>
+                        <td class="dx-call">${s.dx_call}</td>
+                        <td class="spotter-call">${s.spotter}</td>
+                        <td><span class="badge bg-secondary">${s.band}</span></td>
+                        <td><span class="badge bg-dark border border-secondary">${s.mode}</span></td>
+                        <td class="comment-text">${escapeHtml(s.comment || '')}</td>
+                    </tr>`;
+                });
+
+                tbody.innerHTML = html;
+            } catch (err) {
+                console.error("Errore API:", err);
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-danger">Errore di connessione all\'API sulla porta 8080.</td></tr>';
+            }
+        }
+
+        function quickFilterBand(band) {
+            document.getElementById('search-band').value = band;
+            searchHistory();
+        }
+
+        function quickFilterMode(mode) {
+            document.getElementById('search-mode').value = mode;
+            searchHistory();
+        }
+
+        function resetSearch() {
+            document.getElementById('search-dx').value = '';
+            document.getElementById('search-comment').value = '';
+            document.getElementById('search-band').value = '';
+            document.getElementById('search-mode').value = '';
+            document.getElementById('history-table').innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">Usa i filtri sopra per interrogare il database.</td></tr>';
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+            });
+        }
+
+        document.getElementById('search-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            searchHistory();
+        });
+
+        const usersTabBtn = document.querySelector('#users-tab');
+        if (usersTabBtn) {
+            usersTabBtn.addEventListener('shown.bs.tab', async function (event) {
+                const tbody = document.getElementById('users-table-body');
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-info">Interrogazione cluster in corso con GU3ST...</td></tr>';
+                
+                try {
+                    const response = await fetch('/api/users');
+                    const users = await response.json();
+                    
+                    if (users.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-warning">Nessun utente trovato o cluster occupato.</td></tr>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    users.forEach(user => {
+                        html += `<tr>
+                            <td class="dx-call">${escapeHtml(user.call)}</td>
+                            <td>${escapeHtml(user.type)}</td>
+                            <td>${escapeHtml(user.state)}</td>
+                            <td class="time-col">${escapeHtml(user.started)}</td>
+                            <td>${escapeHtml(user.name)}</td>
+                            <td>${escapeHtml(user.ave)}</td>
+                            <td>${escapeHtml(user.rtt)}</td>
+                        </tr>`;
+                    });
+                    tbody.innerHTML = html;
+                } catch (error) {
+                    console.error("Errore fetch utenti:", error);
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-danger">Errore di comunicazione con l\'API server.</td></tr>';
+                }
+            });
+        }
+
+        fetchLiveSpots();
+        setInterval(fetchLiveSpots, 3000);
+
+        async function loadTickerText() {
+          try {
+            const response = await fetch('ticker.txt?v=' + new Date().getTime());
+            
+            if (response.ok) {
+              const rawText = await response.text();
+              const lines = rawText
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+              
+              if (lines.length > 0) {
+                const formattedText = lines.join(' &nbsp;&nbsp;•&nbsp;&nbsp; ');
+                document.getElementById('ticker-content').innerHTML = formattedText;
+              } else {
+                document.getElementById('ticker-content').innerText = "Nessun avviso presente.";
+              }
+            }
+          } catch (error) {
+            console.error("Errore nel caricamento di ticker.txt:", error);
+          }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadTickerText);
+        setInterval(loadTickerText, 60000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "connector":{
+    "host": "ik4icz.dyndns.org",
+    "port": "8000",
+    "call": "IK4ICZ-98"
+   },
+   "db": {
+    "host": "localhost",
+    "user": "dxviewer",
+    "password": "123",
+    "database": "dxviewer"
+   },
+  "www": {
+    "path": "/var/www"
+   },
+
+   "app": {
+     "call": "IK4ICZ",
+     "title": "DX Viewer",
+     "version": "1.4"
+    }
+
+}

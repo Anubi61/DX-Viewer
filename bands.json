@@ -1,0 +1,20 @@
+[
+  { "band": "160m", "min_khz": 1810.0, "max_khz": 2000.0 },
+  { "band": "80m",  "min_khz": 3500.0, "max_khz": 3800.0 },
+  { "band": "60m",  "min_khz": 5351.5, "max_khz": 5366.5 },
+  { "band": "40m",  "min_khz": 7000.0, "max_khz": 7300.0 },
+  { "band": "30m",  "min_khz": 10100.0, "max_khz": 10150.0 },
+  { "band": "20m",  "min_khz": 14000.0, "max_khz": 14350.0 },
+  { "band": "17m",  "min_khz": 18068.0, "max_khz": 18168.0 },
+  { "band": "15m",  "min_khz": 21000.0, "max_khz": 21450.0 },
+  { "band": "12m",  "min_khz": 24890.0, "max_khz": 24990.0 },
+  { "band": "10m",  "min_khz": 28000.0, "max_khz": 29700.0 },
+  { "band": "6m",   "min_khz": 50000.0, "max_khz": 52000.0 },
+  { "band": "4m",   "min_khz": 70000.0, "max_khz": 70500.0 },
+  { "band": "2m",   "min_khz": 144000.0, "max_khz": 146000.0 },
+  { "band": "70cm", "min_khz": 430000.0, "max_khz": 440000.0 },
+  { "band": "23cm", "min_khz": 1240000.0, "max_khz": 1300000.0 },
+  { "band": "13cm", "min_khz": 2300000.0, "max_khz": 2450000.0 },
+  { "band": "3cm",  "min_khz": 10000000.0, "max_khz": 10500000.0 }
+]
+
