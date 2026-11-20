@@ -186,3 +186,8 @@ Aggiungere la seguente riga nel crontab di sistema per aggiornare gli indici ogn
 ## Licenza
 
 Il software **DX Viewer** è distribuito sotto licenza **GNU General Public License v3.0 (GNU GPLv3)**. Copyright © 2026 IU4QTF. È garantita la libertà di utilizzare, modificare e ridistribuire il software a condizione che il codice sorgente rimanga aperto.
+
+---
+
+## Disclaimer
+Nulla di questo codice, a parte le idee, e' del sottoscritto. Codice python e html, css, javascript le ha scritte su mia indicazione la mia scimmia del software (Google Gemini).
